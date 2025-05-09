@@ -1,11 +1,29 @@
-# immich-ruby
+# immich-python
 
-This script exports Album from Immich. 
+## Introduction
 
-I use this to export my favorite Albums and copy them to my Android for zero latency and offline browse.
+This is a fork of [immich-ruby](https://github.com/chengguangnan/immich-ruby), re-written in python. Instructions and functionality are the same, except for the following:
+
+1. you need to have python installed
+1. generate a virtual environment with:
+        ```console
+        python -m venv .venv
+        ```
+1. activate the venv with:
+        ```console
+        . .venv/bin/activate
+        ```
+1. install requirements with:
+        ```console
+        python -m pip install -r requirements.txt
+        ```
+
+## Motivation
+
+I just don't like ruby.
 
 ```
-ruby immich.rb -a Hawaii
+python immich.py -a Hawaii
 ```
 
 This script will connect to the Immich defined at ~/.config/immich/auth.yml. 
