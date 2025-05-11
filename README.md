@@ -22,6 +22,8 @@ This is a fork of [immich-ruby](https://github.com/chengguangnan/immich-ruby), r
 
 I just don't like ruby.
 
+## Usage
+
 ```
 python immich.py -a Hawaii
 ```
