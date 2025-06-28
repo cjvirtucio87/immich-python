@@ -7,6 +7,7 @@ import yaml
 import zipfile
 import shutil
 from pathlib import Path
+import time
 
 class Immich:
     def __init__(self):
@@ -40,11 +41,14 @@ class Immich:
             url = f"{self.host}/api/download/archive"
             # override Accept for binary
             headers = {"Accept": "application/octet-stream"}
-            resp = self.session.post(url,
-                                     json={"assetIds": [asset_id]},
-                                     headers=headers)
+            resp = self.session.post(url, json={"assetIds": [asset_id]}, headers=headers, stream=True, timeout=(5, 20))
             resp.raise_for_status()
-            out_zip.write_bytes(resp.content)
+            with open(out_zip, "wb") as fd:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        print('.', end='', flush=True)
+                        fd.write(chunk)
+                    time.sleep(2)
 
         # extract
         with zipfile.ZipFile(out_zip, 'r') as z:
