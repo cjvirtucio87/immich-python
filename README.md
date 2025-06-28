@@ -6,17 +6,17 @@ This is a fork of [immich-ruby](https://github.com/chengguangnan/immich-ruby), r
 
 1. you need to have python installed
 1. generate a virtual environment with:
-        ```console
-        python -m venv .venv
-        ```
+    ```console
+    python -m venv .venv
+    ```
 1. activate the venv with:
-        ```console
-        . .venv/bin/activate
-        ```
+    ```console
+    . .venv/bin/activate
+    ```
 1. install requirements with:
-        ```console
-        python -m pip install -r requirements.txt
-        ```
+    ```console
+    python -m pip install -r requirements.txt
+    ```
 
 ## Motivation
 
