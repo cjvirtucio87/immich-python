@@ -3,10 +3,13 @@ import os
 import sys
 import argparse
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import yaml
 import zipfile
 import shutil
 from pathlib import Path
+import time
 
 class Immich:
     def __init__(self):
@@ -22,6 +25,26 @@ class Immich:
             "x-api-key": self.key,
             "Accept": "application/json",
         })
+        retry_cfg = Retry(
+          total=5,
+          connect=5,
+          read=5,
+          backoff_factor=2,
+          status_forcelist=[500, 502, 503, 504],
+          allowed_methods={"POST"},   # Immich’s endpoint is POST but idempotent
+        )
+        self.session.mount(
+            "https://",
+            HTTPAdapter(
+              max_retries=retry_cfg,
+            ),
+        )
+        self.session.mount(
+            "http://",
+            HTTPAdapter(
+              max_retries=retry_cfg,
+            ),
+        )
 
     def download_info(self, album_id):
         url = f"{self.host}/api/download/info"
@@ -40,11 +63,12 @@ class Immich:
             url = f"{self.host}/api/download/archive"
             # override Accept for binary
             headers = {"Accept": "application/octet-stream"}
-            resp = self.session.post(url,
-                                     json={"assetIds": [asset_id]},
-                                     headers=headers)
+            resp = self.session.post(url, json={"assetIds": [asset_id]}, headers=headers, stream=True, timeout=(5, 20))
             resp.raise_for_status()
-            out_zip.write_bytes(resp.content)
+            with open(out_zip, "wb") as fd:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        fd.write(chunk)
 
         # extract
         with zipfile.ZipFile(out_zip, 'r') as z:
