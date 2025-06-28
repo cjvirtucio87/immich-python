@@ -3,6 +3,8 @@ import os
 import sys
 import argparse
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import yaml
 import zipfile
 import shutil
@@ -23,6 +25,26 @@ class Immich:
             "x-api-key": self.key,
             "Accept": "application/json",
         })
+        retry_cfg = Retry(
+          total=5,
+          connect=5,
+          read=5,
+          backoff_factor=2,
+          status_forcelist=[500, 502, 503, 504],
+          allowed_methods={"POST"},   # Immich’s endpoint is POST but idempotent
+        )
+        self.session.mount(
+            "https://",
+            HTTPAdapter(
+              max_retries=retry_cfg,
+            ),
+        )
+        self.session.mount(
+            "http://",
+            HTTPAdapter(
+              max_retries=retry_cfg,
+            ),
+        )
 
     def download_info(self, album_id):
         url = f"{self.host}/api/download/info"
@@ -46,9 +68,7 @@ class Immich:
             with open(out_zip, "wb") as fd:
                 for chunk in resp.iter_content(chunk_size=8192):
                     if chunk:
-                        print('.', end='', flush=True)
                         fd.write(chunk)
-                    time.sleep(2)
 
         # extract
         with zipfile.ZipFile(out_zip, 'r') as z:
