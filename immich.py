@@ -2,6 +2,8 @@
 
 from lib.immich import Immich
 from lib.export import Export
+from lib.config import create_config
+from lib.http import create_session
 
 import argparse
 import yaml
@@ -11,7 +13,9 @@ def main():
     p.add_argument("--album", "-a", required=True, help="Album name")
     args = p.parse_args()
 
-    immich = Immich()
+    config = create_config()
+    session = create_session(config.api_key)
+    immich = Immich(session, config.base_url.rstrip("/"))
     for album in immich.albums():
         # skip errored albums
         if album.get('statusCode') is not None:

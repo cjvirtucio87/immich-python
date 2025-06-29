@@ -1,50 +1,23 @@
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-
 from pathlib import Path
 
-import yaml
-
 import zipfile
+import requests
 
 class Immich:
-    def __init__(self):
-        # Load config from ~/.config/immich/auth.yml
-        cfg_path = Path.home() / ".config" / "immich" / "auth.yml"
-        with open(cfg_path, 'r') as f:
-            config = yaml.safe_load(f)
-        self.key = config['apiKey']
-        self.host = config['instanceUrl'].rstrip('/')
-        # persistent session with default headers
-        self.session = requests.Session()
-        self.session.headers.update({
-            "x-api-key": self.key,
-            "Accept": "application/json",
-        })
-        retry_cfg = Retry(
-          total=5,
-          connect=5,
-          read=5,
-          backoff_factor=2,
-          status_forcelist=[500, 502, 503, 504],
-          allowed_methods={"POST"},   # Immich’s endpoint is POST but idempotent
-        )
-        self.session.mount(
-            "https://",
-            HTTPAdapter(
-              max_retries=retry_cfg,
-            ),
-        )
-        self.session.mount(
-            "http://",
-            HTTPAdapter(
-              max_retries=retry_cfg,
-            ),
-        )
+    def __init__(self, session: requests.Session, base_url: str):
+        self._session = session
+        self._base_url = base_url
+
+    @property
+    def base_url(self):
+        return self._base_url
+
+    @property
+    def session(self):
+        return self._session
 
     def download_info(self, album_id):
-        url = f"{self.host}/api/download/info"
+        url = f"{self.base_url}/api/download/info"
         resp = self.session.post(url, json={"albumId": album_id})
         resp.raise_for_status()
         return resp.json()
@@ -57,7 +30,7 @@ class Immich:
         out_zip = zipped_dir / f"{asset_id}.zip"
         if not out_zip.exists():
             print(f"Downloading {asset_id}")
-            url = f"{self.host}/api/download/archive"
+            url = f"{self.base_url}/api/download/archive"
             # override Accept for binary
             headers = {"Accept": "application/octet-stream"}
             resp = self.session.post(url, json={"assetIds": [asset_id]}, headers=headers, stream=True, timeout=(5, 20))
@@ -94,13 +67,13 @@ class Immich:
                 print(exif.get(asset_id))
 
     def get_album_info(self, album_id):
-        url = f"{self.host}/api/albums/{album_id}"
+        url = f"{self.base_url}/api/albums/{album_id}"
         resp = self.session.get(url)
         resp.raise_for_status()
         return resp.json()
 
     def albums(self):
-        url = f"{self.host}/api/albums"
+        url = f"{self.base_url}/api/albums"
         resp = self.session.get(url)
         resp.raise_for_status()
         return resp.json()
