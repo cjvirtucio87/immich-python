@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from lib.immich import Immich
-from lib.export import Export
-from lib.config import create_config
-from lib.http import create_session
+from immich.lib.immich import Immich
+from immich.lib.export import Export
+from immich.lib.config import create_config
+from immich.lib.http import create_session
 
 import argparse
 import yaml

@@ -20,7 +20,7 @@ dev = [
 ]
 
 [project.scripts]
-immich = "immich:main"
+immich-python = "immich.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
