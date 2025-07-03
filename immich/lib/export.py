@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 class Export:
     def __init__(self, base_dir):
         self.base = Path(base_dir)
@@ -23,4 +24,3 @@ class Export:
     @property
     def flatten(self):
         return self.base / "flatten"
-
