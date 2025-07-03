@@ -2,6 +2,9 @@ from pathlib import Path
 
 import zipfile
 import requests
+import immich.lib.logging as immich_logging
+
+LOGGER = immich_logging.get_logger()
 
 class Immich:
     def __init__(self, session: requests.Session, base_url: str):
@@ -29,7 +32,7 @@ class Immich:
 
         out_zip = zipped_dir / f"{asset_id}.zip"
         if not out_zip.exists():
-            print(f"Downloading {asset_id}")
+            LOGGER.info("Downloading %s", asset_id)
             url = f"{self.base_url}/api/download/archive"
             # override Accept for binary
             headers = {"Accept": "application/octet-stream"}
@@ -45,7 +48,7 @@ class Immich:
             z.extractall(unzipped_dir)
 
         files = list(unzipped_dir.iterdir())
-        print(f"children {len(files)} {asset_id}")
+        LOGGER.info("children %s %s", len(files), asset_id)
 
         # build lookup tables
         date_time = {
@@ -64,7 +67,7 @@ class Immich:
                 entry.replace(dest)
             else:
                 # no exif date for this asset
-                print(exif.get(asset_id))
+                LOGGER.info(exif.get(asset_id))
 
     def get_album_info(self, album_id):
         url = f"{self.base_url}/api/albums/{album_id}"

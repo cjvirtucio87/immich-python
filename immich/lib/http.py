@@ -6,7 +6,7 @@ from urllib3.util.retry import Retry
 def create_session(api_key: str):
     session = requests.Session()
     session.headers.update({
-        "x-api-key": key,
+        "x-api-key": api_key,
         "Accept": "application/json",
     })
     retry_cfg = Retry(
@@ -19,12 +19,6 @@ def create_session(api_key: str):
     )
     session.mount(
         "https://",
-        HTTPAdapter(
-          max_retries=retry_cfg,
-        ),
-    )
-    session.mount(
-        "http://",
         HTTPAdapter(
           max_retries=retry_cfg,
         ),
