@@ -2,6 +2,7 @@
 
 from immich.lib.immich import Immich
 from immich.lib.config import create_config
+from immich.lib.fs import StagingArea
 from immich.lib.http import create_session
 from immich.lib.logging import configure_logging, get_logger
 
@@ -18,15 +19,17 @@ def main():
 
     config = create_config()
     session = create_session(config.api_key)
-    immich = Immich(session, config.instance_url.rstrip("/"))
-    errors = immich.download_albums(args.album)
+    
+    with StagingArea() as staging_area:
+        immich = Immich(session, config.instance_url.rstrip("/"), staging_area)
+        errors = immich.download_albums(args.album)
 
-    if len(errors) > 0:
-        error_messages = [str(error) for error in errors]
-        combined_message = "Multiple errors occurred:\n" + "\n".join(
-            f"- {msg}" for msg in error_messages
-        )
-        raise RuntimeError(combined_message)
+        if len(errors) > 0:
+            error_messages = [str(error) for error in errors]
+            combined_message = "Multiple errors occurred:\n" + "\n".join(
+                f"- {msg}" for msg in error_messages
+            )
+            raise RuntimeError(combined_message)
 
 
 if __name__ == "__main__":

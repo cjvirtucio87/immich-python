@@ -7,15 +7,17 @@ import traceback
 import zipfile
 import requests
 from immich.lib.export import Export
+from immich.lib.fs import StagingArea
 import immich.lib.logging as immich_logging
 
 LOGGER = immich_logging.get_logger()
 
 
 class Immich:
-    def __init__(self, session: requests.Session, base_url: str):
+    def __init__(self, session: requests.Session, base_url: str, staging_area: StagingArea):
         self._session = session
         self._base_url = base_url
+        self._staging_area = staging_area
 
     @property
     def base_url(self):
@@ -41,13 +43,18 @@ class Immich:
                     continue
 
                 info = self._download_info(album["id"])
-                export = Export(f"downloads/{album['albumName']}")
                 album_info = self._get_album_info(album["id"])
 
+                album_dir_path = f"downloads/{album['albumName']}"
+                Path(self._staging_area.get_path(album_dir_path)).mkdir(parents=True, exist_ok=True)
+
                 # dump YAMLs
-                with open(export.dir / "album-info.yaml", "w") as f:
+                album_info_dest_path = self._staging_area.get_path(f"{album_dir_path}/album-info.yaml")
+                with open(album_info_dest_path, "w") as f:
                     yaml.safe_dump(album_info, f)
-                with open(export.dir / "album-archive.yaml", "w") as f:
+
+                album_archive_dest_path = self._staging_area.get_path(f"{album_dir_path}/album-archive.yaml")
+                with open(album_archive_dest_path, "w") as f:
                     yaml.safe_dump(info, f)
 
                 info_status_code = info.get("statusCode")
@@ -60,6 +67,9 @@ class Immich:
                 total_mb = info["totalSize"] / 1024 / 1024
                 LOGGER.debug("total size: %d MB", total_mb)
 
+
+                staging_area_album_dir_path = self._staging_area.get_path(album_dir_path)
+                export = Export(staging_area_album_dir_path)
                 count = 0
                 for archive in info.get("archives", []):
                     for asset_id in archive.get("assetIds", []):
@@ -68,6 +78,8 @@ class Immich:
                         self._download_archive(
                             asset_id, export.zipped, album_info, export.flatten
                         )
+
+                self._staging_area.sync(album_dir_path, album_dir_path)
             except Exception as e:
                 traceback.print_exc()
                 errors.append(e)
