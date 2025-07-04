@@ -5,7 +5,7 @@ import yaml
 import traceback
 
 import zipfile
-import requests
+from immich.lib.clients.immich import ImmichClient
 from immich.lib.export import Export
 from immich.lib.fs import StagingArea
 import immich.lib.logging as immich_logging
@@ -14,23 +14,14 @@ LOGGER = immich_logging.get_logger()
 
 
 class Immich:
-    def __init__(self, session: requests.Session, base_url: str, staging_area: StagingArea):
-        self._session = session
-        self._base_url = base_url
+    def __init__(self, staging_area: StagingArea, immich_client: ImmichClient):
         self._staging_area = staging_area
-
-    @property
-    def base_url(self):
-        return self._base_url
-
-    @property
-    def session(self):
-        return self._session
+        self._immich_client = immich_client
 
     def download_albums(self, album_pattern: str) -> list:
         errors = []
         compiled_album_pattern = re.compile(album_pattern)
-        for album in self._albums():
+        for album in self._immich_client.get_albums():
             try:
                 album_status_code = album.get("statusCode")
                 if album_status_code is not None:
@@ -42,8 +33,8 @@ class Immich:
                 if not compiled_album_pattern.match(album.get("albumName", "")):
                     continue
 
-                info = self._download_info(album["id"])
-                album_info = self._get_album_info(album["id"])
+                info = self._immich_client.get_download_info(album["id"])
+                album_info = self._immich_client.get_album_info(album["id"])
 
                 album_dir_path = f"downloads/{album['albumName']}"
                 Path(self._staging_area.get_path(album_dir_path)).mkdir(parents=True, exist_ok=True)
@@ -86,12 +77,6 @@ class Immich:
 
         return errors
 
-    def _download_info(self, album_id):
-        url = f"{self.base_url}/api/download/info"
-        resp = self.session.post(url, json={"albumId": album_id})
-        resp.raise_for_status()
-        return resp.json()
-
     def _download_archive(
         self, asset_id, zipped_dir: Path, album_info: dict, flatten_dir: Path
     ):
@@ -102,21 +87,8 @@ class Immich:
         out_zip = zipped_dir / f"{asset_id}.zip"
         if not out_zip.exists():
             LOGGER.info("Downloading %s", asset_id)
-            url = f"{self.base_url}/api/download/archive"
-            # override Accept for binary
-            headers = {"Accept": "application/octet-stream"}
-            resp = self.session.post(
-                url,
-                json={"assetIds": [asset_id]},
-                headers=headers,
-                stream=True,
-                timeout=(5, 20),
-            )
-            resp.raise_for_status()
             with open(out_zip, "wb") as fd:
-                for chunk in resp.iter_content(chunk_size=8192):
-                    if chunk:
-                        fd.write(chunk)
+                self._immich_client.get_asset_file_object(asset_id, fd)
 
         # extract
         with zipfile.ZipFile(out_zip, "r") as z:
@@ -143,15 +115,3 @@ class Immich:
             else:
                 # no exif date for this asset
                 LOGGER.info(exif.get(asset_id))
-
-    def _get_album_info(self, album_id):
-        url = f"{self.base_url}/api/albums/{album_id}"
-        resp = self.session.get(url)
-        resp.raise_for_status()
-        return resp.json()
-
-    def _albums(self):
-        url = f"{self.base_url}/api/albums"
-        resp = self.session.get(url)
-        resp.raise_for_status()
-        return resp.json()

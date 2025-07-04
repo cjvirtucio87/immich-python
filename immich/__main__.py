@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from immich.lib.clients.immich import ImmichClient
 from immich.lib.immich import Immich
 from immich.lib.config import create_config
 from immich.lib.fs import StagingArea
@@ -21,7 +22,8 @@ def main():
     session = create_session(config.api_key)
     
     with StagingArea() as staging_area:
-        immich = Immich(session, config.instance_url.rstrip("/"), staging_area)
+        immich_client = ImmichClient(config.instance_url.rstrip("/"), session)
+        immich = Immich(staging_area, immich_client)
         errors = immich.download_albums(args.album)
 
         if len(errors) > 0:
