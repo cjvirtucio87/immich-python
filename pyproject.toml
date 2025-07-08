@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "immich-python"
+version = "0.1.0"
+description = "A Python client for downloading and managing Immich albums"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "requests>=2.32.4",
+    "PyYAML>=6.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.1",
+    "ruff>=0.12.1",
+]
+
+[project.scripts]
+immich-python = "immich.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lib*"]
+
+[tool.setuptools]
+py-modules = ["immich"]
+
+[tool.setuptools.package-data]
+"*" = ["*.txt", "*.md"]

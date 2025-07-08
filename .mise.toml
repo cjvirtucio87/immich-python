@@ -1,0 +1,5 @@
+env_file = '.envrc'
+
+[tools]
+uv = 'latest'
+python = 'latest'
